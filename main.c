@@ -34,7 +34,7 @@ void swap(int* list, const int i1, const int i2) {
 
 int pivot(int* list, int left, int right) {
     if (right - left < 5) return partition5(list, left, right);
-    for(int i = left; i < right; i = i + 5) {
+    for(int i = left; i <= right; i = i + 5) {
         int subRight = i + 4;
         if (subRight > right) subRight = right;
         int median5 = partition5(list, i, subRight);
@@ -74,9 +74,7 @@ int partition (int* list, int left, int right, int pivotIndex, int n) {
     }
 
     int storeIndexEq = storeIndex;
-    for(int i = storeIndex; i < right - 1; i++) {
-        if (list[i] = pivotValue) {
-            swap(list, list, storeIndexEq, i);
+    for(int i = storeIndex; i < right; i++) {
         if (list[i] == pivotValue) {
             swap(list, storeIndexEq, i);
             storeIndexEq++;
