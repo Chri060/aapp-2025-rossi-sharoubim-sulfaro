@@ -6,17 +6,18 @@ int pivot(int* list, int left, int right);
 int select (int* list, int left, int right, int n);
 int partition (int* list, int left, int right, int pivotIndex, int n);
 int partition5(int* list, int left, int right);
-void swap(int* list1, int *list2, int i1, int i2);
+void swap(int* list1, int i1, int i2);
 
 
 int main(void) {
     int n, length, index;
     int* list;
 
-    printf("Index i\n");
+    printf("Index i: ");
     scanf_s("%d", &n);
-    printf("Array length\n");
+    printf("Array length: ");
     scanf_s("%d", &length);
+
     list = (int*)malloc(length * sizeof(int));
     for (int i = 0; i < length; i++) {
         scanf_s("%d", &list[i]);
@@ -25,10 +26,10 @@ int main(void) {
     return list[index];
 }
 
-void swap(int* list1, int *list2, const int i1, const int i2) {
-    const int temp = list1[i1];
-    list1[i1] = list2[i2];
-    list2[i2] = temp;
+void swap(int* list, const int i1, const int i2) {
+    const int temp = list[i1];
+    list[i1] = list[i2];
+    list[i2] = temp;
 }
 
 int pivot(int* list, int left, int right) {
@@ -38,7 +39,7 @@ int pivot(int* list, int left, int right) {
         if (subRight > right) subRight = right;
         int median5 = partition5(list, i, subRight);
 
-        swap(list, list, median5, left + floor((i - left) / 5));
+        swap(list, median5, left + floor((i - left) / 5));
     }
 
     int mid = floor((right - left) / 10) + left + 1;
@@ -46,17 +47,14 @@ int pivot(int* list, int left, int right) {
 }
 
 int select (int* list, int left, int right, int n) {
-    int pivotIndex = 0;
+    int pivotIndex;
 
     while (1) {
-        if (left == right) {
-            return left;
-        }
+        if (left == right) return left;
         pivotIndex = pivot(list, left, right);
         pivotIndex = partition(list, left, right, pivotIndex, n);
 
         if (n == pivotIndex) return n;
-
         if (n < pivotIndex) right = pivotIndex - 1;
         else left = pivotIndex + 1;
     }
@@ -65,13 +63,12 @@ int select (int* list, int left, int right, int n) {
 int partition (int* list, int left, int right, int pivotIndex, int n) {
     int pivotValue = list[pivotIndex];
 
-    swap(list, list, pivotIndex, right);
+    swap(list, pivotIndex, right);
     int storeIndex = left;
 
-
-    for (int i = left; i < right - 1; i++) {
+    for (int i = left; i < right; i++) {
         if (list[i] < pivotValue) {
-            swap(list, list, storeIndex, i);
+            swap(list, storeIndex, i);
             storeIndex++;
         }
     }
@@ -80,12 +77,14 @@ int partition (int* list, int left, int right, int pivotIndex, int n) {
     for(int i = storeIndex; i < right - 1; i++) {
         if (list[i] = pivotValue) {
             swap(list, list, storeIndexEq, i);
+        if (list[i] == pivotValue) {
+            swap(list, storeIndexEq, i);
             storeIndexEq++;
         }
 
     }
 
-    swap(list, list, right, storeIndexEq);
+    swap(list, right, storeIndexEq);
 
     if (n < storeIndex) return storeIndex;
     if (n <= storeIndexEq) return n;
@@ -98,7 +97,7 @@ int partition5(int* list, int left, int right) {
     while (i <= right) {
         int j = i;
         while (j > left && list[j-1] > list[j]) {
-            swap(list, list, j-1, j);
+            swap(list, j-1, j);
             j--;
         }
         i++;
