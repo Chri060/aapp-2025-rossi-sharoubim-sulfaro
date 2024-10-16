@@ -3,4 +3,7 @@ project(aapp_rossi_sulfaro C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(aapp_rossi_sulfaro main.c)
+add_executable(aapp_rossi_sulfaro main.c
+        Google_tests/test.c)
+
+add_subdirectory(Google_tests)

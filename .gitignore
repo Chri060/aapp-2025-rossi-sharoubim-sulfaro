@@ -53,3 +53,5 @@ dkms.conf
 
 cmake-build-debug
 .idea
+Google_tests/.DS_Store
+.DS_Store
