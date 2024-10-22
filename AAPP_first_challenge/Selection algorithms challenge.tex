@@ -1,0 +1,114 @@
+\documentclass[paper=a4, fontsize=12pt]{scrartcl}
+\usepackage[T1]{fontenc}
+\usepackage{fourier}
+\usepackage[english]{babel}															
+\usepackage[protrusion=true,expansion=true]{microtype}	
+\usepackage{amsmath,amsfonts,amsthm} 
+\usepackage[pdftex]{graphicx}	
+\usepackage{sectsty}
+\usepackage{geometry}
+\allsectionsfont{\centering \normalfont\scshape}
+\usepackage{fancyhdr}
+\pagestyle{fancyplain}
+\fancyhead{}											
+\fancyfoot[L]{}											
+\fancyfoot[C]{}											
+\fancyfoot[R]{\thepage}									
+\renewcommand{\headrulewidth}{0pt}			
+\renewcommand{\footrulewidth}{0pt}				
+\setlength{\headheight}{13.6pt}
+\numberwithin{equation}{section}		
+\numberwithin{figure}{section}			
+\numberwithin{table}{section}			
+\newcommand{\horrule}[1]{\rule{\linewidth}{#1}} 
+\pagenumbering{gobble}	
+\geometry{margin=1.15in}
+
+\title{
+		\vspace{-1in} 	
+		\usefont{OT1}{bch}{b}{n}
+		\normalfont \normalsize \textsc{Advanced Algorithms And Parallel Programmming} \\ [25pt]
+		\horrule{0.5pt} \\[0.4cm]
+		\huge Selection algorithms challenge \\
+		\horrule{2pt} \\[0.5cm]
+}
+\author{
+		\normalfont 								\normalsize
+        Christian Rossi (10736464) - Kirolos Shroubim (10719510) - Antonio Sulfaro (10742266)\\[-3pt]		\normalsize
+        \today
+}
+\date{}
+
+
+\begin{document}
+    \maketitle
+
+    \section{Selection problem}
+    The selection problem involves finding the $k$-th smallest or largest element in an unsorted array or list of numbers.
+    The goal is to determine the $k$-th order statistic efficiently, without necessarily sorting the entire array.
+    
+    In this work, we will implement two algorithms for solving the selection problem: Median of Medians (standard version) and Quickselect (randomized version).
+
+    \section{Experimental setup}
+    For the development and testing of the algorithms we have used Google Colab.
+    
+    For testing, we utilized the Google Test framework to verify the correctness of both implementations.
+    
+    For benchmarking, we employed the Google Benchmark library to measure the time complexity of the algorithms.
+    
+    \section{Performance measurment}
+    The benchmarks include two versions: one with unordered arrays and another with pre-sorted arrays.
+    
+    An important value to check is the Root Mean Square error (RMS) because it provides a measure of variability in performance data.
+    We aimed to maintain it low using very large arrays. 
+
+    \paragraph{Unordered random arrays}
+    Theoretically, we expect Quickselect to be faster on average compared to Median of Medians.
+    Our experimental results are as follows:
+    \begin{table}[!ht]
+        \centering
+        \begin{tabular}{|c|c|c|c|}
+        \hline
+        \textbf{Version}  & \textbf{Pratical complexity} & \textbf{RMS} & \textbf{Temporal complexity}      \\ \hline
+        \textit{Median of medians} & $T(n) \approx 105n$      &             $\approx 3\%$                & $\mathcal{O}(n)$             \\
+        \textit{Quickselect}   & $T(n) \approx 30n$       &           $\approx 7\%$                  & $\mathcal{O}(n)$             \\ \hline
+        \end{tabular}
+    \end{table}\\
+    As shown, both algorithms exhibit linear time complexity, but Quickselect has a significantly smaller constant factor, making it faster in practice.
+
+    \paragraph{Ordered random arrays}
+    Since our algorithm doesn't check if the array is already sorted, it cannot simply return the $i$-th element.
+    The random version, in this case, carries a greater risk of encountering the worst-case scenario, which has a quadratic time complexity. 
+    This can occur if it consistently chooses the first or last element as the pivot, so the partitioning would yield highly unbalanced subarrays, requiring many recursive calls to narrow down the selection.
+    The results are as follows:
+    \begin{table}[!ht]
+        \centering
+        \begin{tabular}{|c|c|c|c|}
+        \hline
+        \textbf{Version}  & \textbf{Pratical complexity} & \textbf{RMS} & \textbf{Temporal complexity}      \\ \hline
+        \textit{Median of medians} & $T(n) \approx 60n$     &         $\approx 1\%$                     & $\mathcal{O}(n)$             \\
+        \textit{Quickselect}   & $T(n) \approx 60n$    &          $\approx 1\%$                    & $\mathcal{O}(n)$             \\ \hline
+        \end{tabular}
+    \end{table} \\
+    Nevertheless, as evidenced by our results, Quickselect has a similar perfornce with respect to Median of Medians in practice. 
+    This is primarily because it is unlikely that the randomly chosen pivot will consistently be the worst-case option.
+
+    Thus, it is a good practice to consider the average case in real-life situations.
+
+    \section{Design choices}
+    \paragraph{Implementation}
+    To evaluate the performance of both Quickselect and Median of Medians of the algorithms, we implemented them in C.
+    In the file \texttt{ith\_element.c}, two functions are defined for each version: \texttt{getIthElement} for Median of Medians and \texttt{getIthElementRand} for Quickselect. 
+
+    \paragraph{Testing}
+    We designed common test cases for both algorithms, which include arrays with negative numbers, ordered and unordered arrays, and cases that select the smallest, largest, and median elements.
+    Additionally, we included arrays with repeated elements to ensure robustness.
+
+    \paragraph{Benchmark}
+    We conducted performance benchmarks on arrays of varying sizes to evaluate both algorithms across different scales; however, we have excluded small arrays from consideration as they increase the RMS error and are thus of little significance.
+    Since both algorithms modify the input, the overhead of copying arrays for each test could impact results, but this should be minimal due to the linear nature of both copying and the algorithms' average complexity.
+
+    The benchmarks involved generating random arrays of great sizes and selecting an element at a specified index. 
+    To provide a more comprehensive evaluation, we also included tests using pre-sorted arrays, as randomly generated arrays are unlikely to be fully sorted. 
+    The arrays may contain repeated elements to reflect real-world scenarios.
+\end{document}
