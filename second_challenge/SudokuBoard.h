@@ -32,55 +32,64 @@
 class CSudokuBoard
 {
 public:
-	CSudokuBoard(int fsize, int bsize);
-	CSudokuBoard(const CSudokuBoard& other);
-	~CSudokuBoard(void);
+    CSudokuBoard(int fsize, int bsize);
+    CSudokuBoard(const CSudokuBoard& other);
+    ~CSudokuBoard(void);
 
-	inline int getNumSolutions() const {
-		return this->solutions;
-	}
-	
-	inline void incrementSolutionCounter() {
-		if (this->solutions == -1)
-			this->solutions = 1;
-		else
-			this->solutions++;
-	}
-	
-	inline int getFieldSize() const {
-		return this->field_size;
-	}
-	
-	inline int getBlockSize() const {
-		return this->block_size;
-	}
-	
-	inline int get(int x, int y) const {
-		return this->field[ACCESS(x,y)];
-	}
-	
-	inline void set(int x, int y, int value) {
-		this->field[ACCESS(x, y)] = value;
-	}
+    inline int getNumSolutions() const {
+        return this->solutions;
+    }
 
-	/**
-	 * Read Sudoku template from file
-	 * @param filename name of file to read input from
-	 * @return true if reading file was successful, false if not
-	 */
-	bool loadFromFile(char *filename);
+    inline void incrementSolutionCounter() {
+        if (this->solutions == -1)
+            this->solutions = 1;
+        else
+            this->solutions++;
+    }
 
-	/**
-	 * Print the Sudoku board to stdout
-	 */
-	void printBoard();
+    inline int getFieldSize() const {
+        return this->field_size;
+    }
+
+    inline int getBlockSize() const {
+        return this->block_size;
+    }
+
+    inline int get(int x, int y) const {
+        return this->field[ACCESS(x,y)];
+    }
+
+    inline void set(int x, int y, int value) {
+        this->field[ACCESS(x, y)] = value;
+    }
+
+    /**
+     * Read Sudoku template from file
+     * @param filename name of file to read input from
+     * @return true if reading file was successful, false if not
+     */
+    bool loadFromFile(char *filename);
+
+    /**
+     * Print the Sudoku board to stdout
+     */
+    void printBoard();
+
+    /**
+     * Find the first empty cell
+     */
+    bool findEmptyCell(int &row, int &col) const;
+
+    bool isValidMove(int row, int col, int value) const;
+
+    bool isSolved();
 
 private:
-	
-	int field_size;
-	int block_size;
 
-	int *field;
+    int field_size;
+    int block_size;
 
-	int solutions;
+    int *field;
+
+    int solutions;
 };
