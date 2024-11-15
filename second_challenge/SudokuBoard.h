@@ -78,7 +78,7 @@ public:
     /**
      * Find the first empty cell
      */
-    bool findEmptyCell(int &row, int &col) const;
+    bool findEmptyCell(int *row, int *col) const;
 
     bool isValidMove(int row, int col, int value) const;
 

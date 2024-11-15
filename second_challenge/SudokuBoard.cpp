@@ -76,13 +76,13 @@ void CSudokuBoard::printBoard()
     }
 }
 
-bool CSudokuBoard::findEmptyCell(int& row, int& col) const {
+bool CSudokuBoard::findEmptyCell(int *row, int *col) const {
     int size = getFieldSize();
     for (int r = 0; r < size; ++r) {
         for (int c = 0; c < size; ++c) {
             if (get(r,c) == 0) {
-                row = r;
-                col = c;
+                *row = r;
+                *col = c;
                 return true;               // Found an empty cell
             }
         }
