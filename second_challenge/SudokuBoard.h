@@ -82,8 +82,6 @@ public:
 
     bool isValidMove(int row, int col, int value) const;
 
-    bool isSolved();
-
 private:
 
     int field_size;

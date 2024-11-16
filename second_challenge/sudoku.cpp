@@ -28,7 +28,7 @@
 
 #include "SudokuBoard.h"
 
-void solve(CSudokuBoard *sudoku);
+void solve(CSudokuBoard *sudoku, int n);
 int found_sudokus = 0;
 std::vector<CSudokuBoard> solutions;
 
@@ -51,13 +51,19 @@ int main(int argc, char* argv[]) {
         }
 
         // print the Sudoku board template
-        std::cout << "Given Sudoku template" << std::endl;
-        sudokuIn->printBoard();
+//        std::cout << "Given Sudoku template" << std::endl;
+//        sudokuIn->printBoard();
 
         // solve the Sudoku by finding (and printing) all solutions
         t3 = omp_get_wtime();
 
-        solve(sudokuIn);
+        #pragma omp parallel
+        {
+            #pragma omp single
+            {
+                solve(sudokuIn, 0);
+            }
+        }
 
         t4 = omp_get_wtime();
 
@@ -66,10 +72,10 @@ int main(int argc, char* argv[]) {
 
     // print the time
     std::cout << "Parallel computation took " << t4 - t3 << " seconds ("
-              << omp_get_max_threads() << " threads)." << std::endl << std::endl;
+              << omp_get_max_threads() << " threads)." << std::endl;
 
     //print the solutions
-    std::cout << "#solutions: " << found_sudokus << std::endl;
+    std::cout << "#solutions: " << found_sudokus << std::endl << std::endl;
 //    for (CSudokuBoard s: solutions){
 //        s.printBoard();
 //    }
@@ -77,18 +83,11 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void solveRecursive(CSudokuBoard *sudoku) {
-//    if (sudoku->isSolved()) {
-//        #pragma omp critical
-//        sudoku->incrementSolutionCounter();
-//        return;
-//    }
-
+void solve(CSudokuBoard *sudoku, int n) {
     int row = 0, col = 0;
     if (!sudoku->findEmptyCell(&row, &col)){
         #pragma omp critical
         {
-            sudoku->incrementSolutionCounter();
             found_sudokus++;
             solutions.push_back(*sudoku);
         }
@@ -97,31 +96,11 @@ void solveRecursive(CSudokuBoard *sudoku) {
 
     for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
         if (sudoku->isValidMove(row, col, value)) {
-            auto *newBoard = new CSudokuBoard(*sudoku);
-            newBoard->set(row, col, value);
-            solveRecursive(newBoard);
-        }
-    }
-}
-
-void solve(CSudokuBoard *sudoku){
-    int row = 0, col = 0;
-
-    sudoku->findEmptyCell(&row, &col);
-
-    #pragma omp parallel
-    {
-        #pragma omp single
-        {
-            for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
-                if (sudoku->isValidMove(row, col, value)) {
-                    #pragma omp task
-                    {
-                        auto *newBoard = new CSudokuBoard(*sudoku);
-                        newBoard->set(row, col, value);
-                        solveRecursive(newBoard);
-                    }
-                }
+            #pragma omp task if(n < sudoku->getFieldSize())
+            {
+                auto *newBoard = new CSudokuBoard(*sudoku);
+                newBoard->set(row, col, value);
+                solve(newBoard, n++);
             }
         }
     }

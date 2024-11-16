@@ -90,63 +90,13 @@ bool CSudokuBoard::findEmptyCell(int *row, int *col) const {
     return false;                          // No empty cell found
 }
 
-bool CSudokuBoard::isValidMove(int row, int col, int value) const {
-    int sizeF = getFieldSize();
-    int sizeB = getBlockSize();
-
-    // Check if the value is already in the same row
-    for (int c = 0; c < sizeF; ++c) {
-        if (get(row,c) == value) {
+bool CSudokuBoard::isValidMove(int row, int col, int num) const {
+    for (int i = 0; i < getFieldSize(); ++i) {
+        if (get(row,i) == num || get(i,col) == num)
             return false;
-        }
-    }
-
-    // Check if the value is already in the same column
-    for (int r = 0; r < sizeF; ++r) {
-        if (get(r, col) == value) {
+        int sizeB = getBlockSize();
+        if (get(row / sizeB * sizeB + i / sizeB, col / sizeB * sizeB + i % sizeB) == num)
             return false;
-        }
-    }
-
-    // Check if the value is in the same 3x3 subgrid
-    int subGridRowStart = (row / sizeB) * sizeB;
-    int subGridColStart = (col / sizeB) * sizeB;
-
-    for (int r = subGridRowStart; r < subGridRowStart + sizeB; ++r) {
-        for (int c = subGridColStart; c < subGridColStart + sizeB; ++c) {
-            if (get(r,c) == value) {
-                return false;
-            }
-        }
-    }
-
-    // If all checks pass, the move is valid
-    return true;
-}
-
-bool CSudokuBoard::isSolved() {
-    // Check if all cells are filled and the board is valid
-    for (int row = 0; row < 9; ++row) {
-        for (int col = 0; col < 9; ++col) {
-            int value = get(row,col);
-
-            // An empty cell indicates the board isn't solved
-            if (value == 0) {
-                return false;
-            }
-
-            // Temporarily clear the current cell for validation
-            set(row,col,0);
-
-            // Check if placing the value back is valid
-            if (!isValidMove(row, col, value)) {
-                set(row,col,value); // Restore the value
-                return false;
-            }
-
-            // Restore the value after validation
-            set(row,col, value);
-        }
     }
     return true;
 }
