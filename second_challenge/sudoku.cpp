@@ -100,7 +100,7 @@ void solve(CSudokuBoard *sudoku, int n) {
             {
                 auto *newBoard = new CSudokuBoard(*sudoku);
                 newBoard->set(row, col, value);
-                solve(newBoard, n++);
+                solve(newBoard, n+1);
             }
         }
     }
