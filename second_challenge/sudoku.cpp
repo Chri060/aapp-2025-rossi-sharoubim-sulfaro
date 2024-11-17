@@ -29,6 +29,7 @@
 #include "SudokuBoard.h"
 
 void solve(CSudokuBoard *sudoku, int n);
+void serialSolve(CSudokuBoard *sudoku);
 int found_sudokus = 0;
 std::vector<CSudokuBoard> solutions;
 
@@ -85,6 +86,10 @@ int main(int argc, char* argv[]) {
 
 void solve(CSudokuBoard *sudoku, int n) {
     int row = 0, col = 0;
+//    if (n > sudoku->getFieldSize() * (sudoku->getFieldSize() - sudoku->getBlockSize())){
+//        serialSolve(sudoku);
+//        return;
+//    }
     if (!sudoku->findEmptyCell(&row, &col)){
         #pragma omp critical
         {
@@ -96,12 +101,29 @@ void solve(CSudokuBoard *sudoku, int n) {
 
     for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
         if (sudoku->isValidMove(row, col, value)) {
-            #pragma omp task if(n < sudoku->getFieldSize())
+            #pragma omp task if(n % sudoku->getBlockSize() == 0)
             {
                 auto *newBoard = new CSudokuBoard(*sudoku);
                 newBoard->set(row, col, value);
                 solve(newBoard, n+1);
             }
         }
+    }
+}
+
+void serialSolve(CSudokuBoard *sudoku) {
+    int row = 0, col = 0;
+    if (!sudoku->findEmptyCell(&row, &col)){
+        found_sudokus++;
+        solutions.push_back(*sudoku);
+        return;
+    }
+
+    for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
+        if (sudoku->isValidMove(row, col, value)) {
+            sudoku->set(row, col, value);
+            serialSolve(sudoku);
+        }
+        sudoku->set(row, col, 0);
     }
 }
