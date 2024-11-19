@@ -21,14 +21,13 @@
 
 #include <iostream>
 
-#include <stdio.h>
 #include <stdlib.h>
+#include <functional>
 
 #include <omp.h>
 
 #include "SudokuBoard.h"
 
-int found_sudokus = 0;
 std::vector<CSudokuBoard> solutions;
 
 void solve_NoCO(CSudokuBoard *sudoku);
@@ -38,10 +37,45 @@ void solveCO_Depth_StrictSerial(CSudokuBoard *sudoku, int depth);
 void solveCO_StrictDepth_StrictSerial(CSudokuBoard *sudoku, int depth);
 void serialSolve(CSudokuBoard *sudoku);
 
-int main(int argc, char* argv[]) {
-    // measure the time
-    double t3, t4;
+void printSolutions() {
+    std::cout << "#solutions: " << solutions.size() << std::endl;
+    for (CSudokuBoard s: solutions){
+        s.printBoard();
+    }
+}
+double run(CSudokuBoard *board, const std::function<void(CSudokuBoard*, int)>& func){
+    double start = omp_get_wtime(), end;
 
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            func(board, 0);
+        }
+    }
+    end = omp_get_wtime();
+
+    //printSolutions();
+    solutions.clear();
+    return end - start;
+}
+double run(CSudokuBoard *board, const std::function<void(CSudokuBoard*)>& func){
+    double start = omp_get_wtime();
+
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            func(board);
+        }
+    }
+
+    //printSolutions();
+    solutions.clear();
+    return omp_get_wtime() - start;
+}
+
+int main(int argc, char* argv[]) {
     // expect three command line arguments: field size, block size, and input file
     if (argc != 4) {
         std::cout << "Usage: sudoku.exe <field size> <block size> <input filename>" << std::endl;
@@ -56,35 +90,15 @@ int main(int argc, char* argv[]) {
             return -1;
         }
 
-        // print the Sudoku board template
-//        std::cout << "Given Sudoku template" << std::endl;
-//        sudokuIn->printBoard();
-
-        // solve the Sudoku by finding (and printing) all solutions
-        t3 = omp_get_wtime();
-
-        #pragma omp parallel
-        {
-            #pragma omp single
-            {
-                solveCO_Depth_StrictSerial(sudokuIn, 0);
-            }
-        }
-
-        t4 = omp_get_wtime();
+        std::cout << omp_get_max_threads() << " threads:\n";
+        std::cout << "solve_NoCO: " << run(sudokuIn, solve_NoCO) << "s" << std::endl;
+        std::cout << "solveCO_Depth: " << run(sudokuIn, solveCO_Depth) << "s" << std::endl;
+        std::cout << "solveCO_Depth_Serial: " << run(sudokuIn, solveCO_Depth_Serial) << "s" << std::endl;
+        std::cout << "solveCO_Depth_StrictSerial: " << run(sudokuIn, solveCO_Depth_StrictSerial) << "s" << std::endl;
+        std::cout << "solveCO_StrictDepth_StrictSerial: " << run(sudokuIn, solveCO_StrictDepth_StrictSerial) << "s" << std::endl;
 
         delete sudokuIn;
     }
-
-    // print the time
-    std::cout << "Parallel computation took " << t4 - t3 << " seconds ("
-              << omp_get_max_threads() << " threads)." << std::endl;
-
-    //print the solutions
-    std::cout << "#solutions: " << found_sudokus << std::endl << std::endl;
-//    for (CSudokuBoard s: solutions){
-//        s.printBoard();
-//    }
 
     return 0;
 }
@@ -95,7 +109,6 @@ void solve_NoCO(CSudokuBoard *sudoku) {
     if (!sudoku->findEmptyCell(&row, &col)){
         #pragma omp critical
         {
-            found_sudokus++;
             solutions.push_back(*sudoku);
         }
         return;
@@ -118,7 +131,6 @@ void solveCO_Depth(CSudokuBoard *sudoku, int depth) {
     if (!sudoku->findEmptyCell(&row, &col)){
         #pragma omp critical
         {
-            found_sudokus++;
             solutions.push_back(*sudoku);
         }
         return;
@@ -143,7 +155,6 @@ void solveCO_Depth_Serial(CSudokuBoard *sudoku, int depth) {
     }
     if (!sudoku->findEmptyCell(&row, &col)){
         // never reached practically
-        found_sudokus++;
         solutions.push_back(*sudoku);
         return;
     }
@@ -167,7 +178,6 @@ void solveCO_Depth_StrictSerial(CSudokuBoard *sudoku, int depth) {
     }
     if (!sudoku->findEmptyCell(&row, &col)){
         // for safety, never reached practically
-        found_sudokus++;
         solutions.push_back(*sudoku);
         return;
     }
@@ -191,7 +201,6 @@ void solveCO_StrictDepth_StrictSerial(CSudokuBoard *sudoku, int depth) {
     }
     if (!sudoku->findEmptyCell(&row, &col)){
         // never reached practically
-        found_sudokus++;
         solutions.push_back(*sudoku);
         return;
     }
@@ -211,7 +220,6 @@ void solveCO_StrictDepth_StrictSerial(CSudokuBoard *sudoku, int depth) {
 void serialSolve(CSudokuBoard *sudoku) {
     int row = 0, col = 0;
     if (!sudoku->findEmptyCell(&row, &col)){
-        found_sudokus++;
         solutions.push_back(*new CSudokuBoard(*sudoku));
         return;
     }
