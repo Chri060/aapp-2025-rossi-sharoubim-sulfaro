@@ -28,10 +28,15 @@
 
 #include "SudokuBoard.h"
 
-void solve(CSudokuBoard *sudoku, int n);
-void serialSolve(CSudokuBoard *sudoku);
 int found_sudokus = 0;
 std::vector<CSudokuBoard> solutions;
+
+void solve_NoCO(CSudokuBoard *sudoku);
+void solveCO_Depth(CSudokuBoard *sudoku, int depth);
+void solveCO_Depth_Serial(CSudokuBoard *sudoku, int depth);
+void solveCO_Depth_StrictSerial(CSudokuBoard *sudoku, int depth);
+void solveCO_StrictDepth_StrictSerial(CSudokuBoard *sudoku, int depth);
+void serialSolve(CSudokuBoard *sudoku);
 
 int main(int argc, char* argv[]) {
     // measure the time
@@ -62,7 +67,7 @@ int main(int argc, char* argv[]) {
         {
             #pragma omp single
             {
-                solve(sudokuIn, 0);
+                solveCO_Depth_StrictSerial(sudokuIn, 0);
             }
         }
 
@@ -84,12 +89,9 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void solve(CSudokuBoard *sudoku, int n) {
+void solve_NoCO(CSudokuBoard *sudoku) {
     int row = 0, col = 0;
-//    if (n > sudoku->getFieldSize() * (sudoku->getFieldSize() - sudoku->getBlockSize())){
-//        serialSolve(sudoku);
-//        return;
-//    }
+
     if (!sudoku->findEmptyCell(&row, &col)){
         #pragma omp critical
         {
@@ -101,11 +103,106 @@ void solve(CSudokuBoard *sudoku, int n) {
 
     for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
         if (sudoku->isValidMove(row, col, value)) {
-            #pragma omp task if(n % sudoku->getBlockSize() == 0)
+            #pragma omp task
             {
                 auto *newBoard = new CSudokuBoard(*sudoku);
                 newBoard->set(row, col, value);
-                solve(newBoard, n+1);
+                solve_NoCO(newBoard);
+            }
+        }
+    }
+}
+void solveCO_Depth(CSudokuBoard *sudoku, int depth) {
+    int row = 0, col = 0;
+
+    if (!sudoku->findEmptyCell(&row, &col)){
+        #pragma omp critical
+        {
+            found_sudokus++;
+            solutions.push_back(*sudoku);
+        }
+        return;
+    }
+
+    for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
+        if (sudoku->isValidMove(row, col, value)) {
+            #pragma omp task if(depth % sudoku->getBlockSize() == 0 && depth <= sudoku->getFieldSize() * sudoku->getBlockSize())
+            {
+                auto *newBoard = new CSudokuBoard(*sudoku);
+                newBoard->set(row, col, value);
+                solveCO_Depth(newBoard, depth + 1);
+            }
+        }
+    }
+}
+void solveCO_Depth_Serial(CSudokuBoard *sudoku, int depth) {
+    int row = 0, col = 0;
+    if (depth > sudoku->getFieldSize() * (sudoku->getFieldSize() - sudoku->getBlockSize())){
+        serialSolve(sudoku);
+        return;
+    }
+    if (!sudoku->findEmptyCell(&row, &col)){
+        // never reached practically
+        found_sudokus++;
+        solutions.push_back(*sudoku);
+        return;
+    }
+
+    for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
+        if (sudoku->isValidMove(row, col, value)) {
+            #pragma omp task if(depth % sudoku->getBlockSize() == 0)
+            {
+                auto *newBoard = new CSudokuBoard(*sudoku);
+                newBoard->set(row, col, value);
+                solveCO_Depth_Serial(newBoard, depth + 1);
+            }
+        }
+    }
+}
+void solveCO_Depth_StrictSerial(CSudokuBoard *sudoku, int depth) {
+    int row = 0, col = 0;
+    if (depth > sudoku->getFieldSize() * sudoku->getBlockSize()){
+        serialSolve(sudoku);
+        return;
+    }
+    if (!sudoku->findEmptyCell(&row, &col)){
+        // for safety, never reached practically
+        found_sudokus++;
+        solutions.push_back(*sudoku);
+        return;
+    }
+
+    for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
+        if (sudoku->isValidMove(row, col, value)) {
+            #pragma omp task if(depth % sudoku->getBlockSize() == 0)
+            {
+                auto *newBoard = new CSudokuBoard(*sudoku);
+                newBoard->set(row, col, value);
+                solveCO_Depth_StrictSerial(newBoard, depth + 1);
+            }
+        }
+    }
+}
+void solveCO_StrictDepth_StrictSerial(CSudokuBoard *sudoku, int depth) {
+    int row = 0, col = 0;
+    if (depth > sudoku->getFieldSize() * sudoku->getFieldSize()){
+        serialSolve(sudoku);
+        return;
+    }
+    if (!sudoku->findEmptyCell(&row, &col)){
+        // never reached practically
+        found_sudokus++;
+        solutions.push_back(*sudoku);
+        return;
+    }
+
+    for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
+        if (sudoku->isValidMove(row, col, value)) {
+            #pragma omp task if(depth % sudoku->getFieldSize() == 0)
+            {
+                auto *newBoard = new CSudokuBoard(*sudoku);
+                newBoard->set(row, col, value);
+                solveCO_StrictDepth_StrictSerial(newBoard, depth + 1);
             }
         }
     }
