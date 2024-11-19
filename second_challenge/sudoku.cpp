@@ -115,7 +115,7 @@ void serialSolve(CSudokuBoard *sudoku) {
     int row = 0, col = 0;
     if (!sudoku->findEmptyCell(&row, &col)){
         found_sudokus++;
-        solutions.push_back(*sudoku);
+        solutions.push_back(*new CSudokuBoard(*sudoku));
         return;
     }
 
