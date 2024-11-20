@@ -6,6 +6,8 @@
 \usepackage{amsmath,amsfonts,amsthm} 
 \usepackage[pdftex]{graphicx}	
 \usepackage{sectsty}
+\usepackage{caption}
+\usepackage{subcaption}
 \usepackage{geometry}
 \allsectionsfont{\centering \normalfont\scshape}
 \usepackage{fancyhdr}
@@ -43,79 +45,66 @@
 \begin{document}
     \maketitle
 
-    \section{Sudoku problem}
-    We were required to solve a $n\times n$-dimensional Sudoku using parallel programming on OpenMP.
-
     \section{Experimental setup}
-    We conducted our experiments using the provided materials, which included:
-    \begin{itemize}
-        \item A set of C++ files where to write the algorithm.
-        \item A bash script designed to execute the application with OpenMP and different number of threads.
-        \item Sudoku examples of different size. 
-    \end{itemize}
-    Since we worked on a Windows system, we employed the \texttt{mingw32} toolchain for compilation and used the bash CLI to manage the build and execution of the application.
+    We conducted our experiments using the provided materials, which included: a set of C++ files where to write the algorithm, a bash script designed to execute the application with OpenMP that changes the number of threads, and Sudoku templates of different sizes. 
+    Since we worked on a Windows system, we employed the \texttt{mingw} toolchain for compilation and used the bash CLI to manage the build and execution of the application.
     
+    \section{Design choices}
+    The Sudoku solver was implemented using a brute-force approach based on Depth-First Search (DFS). 
+    Each empty cell in the Sudoku grid is filled by recursively attempting all valid numbers, backtracking when a conflict is encountered.
+    This was achieved by creating OpenMP tasks at each recursive level. 
+    However, this approach faced a major challenge: the number of tasks could grow exponentially, leading to excessive system resources usages and memory consumption.
+
+    \noindent To address these challenges, we introduced cutoff strategies:
+    \begin{itemize}
+        \item \textit{Depth-based cutoff:} tasks are generated until a specific depth level is reached. 
+        \item \textit{Serial algorithm cutoff:} the last levels of recursion are solved using a serial implementation. 
+            This approach significantly reduces memory usage as the serial algorithm modifies the Sudoku board in place, eliminating the need to copy the board at every step.
+        \item \textit{Combination of cutoffs:} a combination of the depth-based and serial cutoffs was also implemented to test their combined effectiveness, in two variations: strict (the cutoffs occurs on a higher level of depth), and very strict (even higher level).
+    \end{itemize}
+    These design choices allowed us to systematically explore the trade-offs between parallelism, memory usage, and computational overhead. 
+
     \section{Performance measurment}
     The performance of our Sudoku solver was evaluated on inputs of varying sizes: $9\times 9$, $16\times 16$, and $25\times 25$ grids. 
-    These inputs allowed us to assess how the algorithm scales with increasing complexity.
     All measurements were performed on a machine with the following specifications: 
     \begin{table}[!ht]
         \centering
         \begin{tabular}{|l|l|}
         \hline
-        \textbf{OS}  & Microsoft Windows 11 Pro                                                   \\ \hline
-        \textbf{CPU} & Intel Core i9-10850K 3.60GHz, 10 Cores, 20 Logical processors \\ \hline
-        \textbf{RAM} & DDR4 16.0 GB                                                               \\ \hline
+        \textbf{OS}  & Microsoft Windows 11 Home                                                \\ \hline
+        \textbf{CPU} & Intel Core i5-1035G1 1.00GHz, 4 Cores, 8  Logical processors \\ \hline
+        \textbf{RAM} & DDR4 8.0 GB                                                               \\ \hline
         \end{tabular}
     \end{table}
+
     The cases taken into account are:
     \begin{enumerate}
         \item \textit{$9\times 9$ Sudoku:} this size was trivial for all configurations, with execution times consistently close to zero. 
             Due to its simplicity, it did not allow us to meaningfully observe the effects of parallelization or cutoff strategies.
-        \item \textit{$16\times 16$ Sudoku:} this input size provided a better benchmark for evaluating performance. We can observe: 
-            \begin{itemize}
-                \item The initial increase in the number of threads resulted in a noticeable speedup, as the workload was effectively split among the threads, however, beyond a certain point, increasing the thread count led to diminishing returns in efficiency. 
-                    This behaviour highlights the overhead of task creation.
-                \item Configurations without cutoff strategies or with partial cutoff are slower and consume more memory.
-                \item The best-performing configuration is the depth with strict serial cutoff. 
-                    This configuration balances parallel task creation at higher levels with memory-efficient serial computation at lower levels.
-            \end{itemize}
-        \item \textit{$25\times 25$ Sudoku:} this input size was extremely resource-intensive, causing our machine to crash across all configurations, including the strict ones. 
-            The combination of high memory usage and CPU demand exceeded the capabilities of the system, making this input impractical for evaluation on our hardware.
+        \item \textit{$16\times 16$ Sudoku:} this input size provided a better benchmark for evaluating performance.
+            We observe a significant difference in the running times of algorithms with and without a serial cutoff. 
+            The configuration without a cutoff shows no improvement when an additional thread is introduced, underscoring the overhead caused by excessive task creation. 
+            In contrast, adopting a serial approach at lower levels of recursion drastically reduces running time. 
+            Notably, the strict versions outperform the non-strict ones.
+        \item \textit{$25\times 25$ Sudoku:} this input proved to be highly resource-intensive, especially with the configuration using the non-serial cutoff. 
+            This implementation caused the system to crash, so we were unable to test those scenarios. 
+            However, the configurations with a cutoff demonstrated significant improvement as the number of threads increased.
+            Interestingly, the best performance was observed with the non-strict cutoff configuration.
     \end{enumerate}
     The performance measure of the algorithm in the given machine are as follows: 
     \begin{figure}[!ht]
         \centering
-        \includegraphics[width=1\linewidth]{image.png}
-        \caption{Performance on a Intel Core i9-10850K}
+        \begin{subfigure}[b]{0.49\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image16.png} 
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.49\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image25.png} 
+        \end{subfigure}
+        \caption{Performance for Intel Core i5}
     \end{figure}
-    
     The performance of the algorithm varied significantly across different hardware setups.
     This variability demonstrates that parallel algorithms must be fine-tuned for the specific machine they are run on.
-
-    \section{Design choices}
-    The Sudoku solver was implemented using a brute-force approach based on Depth-First Search (DFS). 
-    Each empty cell in the Sudoku grid is filled by recursively attempting all valid numbers, backtracking when a conflict is encountered.
-    To optimize performance and manage the computational demands of the problem, we incorporated OpenMP to parallelize the recursive calls. 
-    This was achieved by creating OpenMP tasks at each recursive level. 
-    However, this approach faced two major challenges:
-    \begin{enumerate}
-        \item \textit{Excessive number of tasks:} for large Sudoku puzzles, the number of parallel tasks generated could grow exponentially, overwhelming system resources.
-        \item \textit{High memory usage:} at each node of the recursion tree, a new Sudoku board had to be created and stored, leading to significant memory consumption.
-    \end{enumerate}
-    \noindent To address these challenges, we introduced cutoff strategies:
-    \begin{itemize}
-        \item \textit{Depth-based cutoff:} tasks are generated only at specific levels of recursion, i.e. $n$ levels. 
-            This reduces the number of parallel tasks while maintaining the benefits of parallelism, to reduce overheads and memory.
-        \item \textit{Serial algorithm cutoff:} tlast levels of recursion are solved using a serial implementation. 
-            This approach significantly reduces memory usage as the serial algorithm modifies the Sudoku board in place, eliminating the need to copy the board at every step.
-        \item \textit{Combination of cutoffs:} a combination of the depth-based and serial cutoffs was also implemented to test their combined effectiveness, in two configurations:
-            \begin{itemize}
-                \item \textit{Strict configuration:} the depth-based cutoff occurs more frequently, so the tasks are generated every larger $n$ level, and the serial cutoff is applied at a lower level. 
-                    This reduces the number of tasks and memory usage more aggressively.
-                    \item \textit{Non-strict configuration}.
-            \end{itemize}
-    \end{itemize}
-    These design choices allowed us to systematically explore the trade-offs between parallelism, memory usage, and computational overhead. 
-    The different cutoff configurations were evaluated to determine their impact on performance for various Sudoku inputs.
 \end{document}
