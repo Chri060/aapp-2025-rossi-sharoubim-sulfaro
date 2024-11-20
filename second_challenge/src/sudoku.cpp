@@ -28,29 +28,75 @@
 
 #include "SudokuBoard.h"
 
+//a vector of all the founded solutions
 std::vector<CSudokuBoard> solutions;
 
+/**
+ * A bruteforce recursive solution that generate a task for each node of recursion
+ * @param sudoku CSudokuBoard that represent the sudoku to complete
+ */
 void solve_NoCO(CSudokuBoard *sudoku);
+/**
+ * A bruteforce recursive solution that generate a task for each node of recursion until complete the first 2 rows
+ * @param sudoku CSudokuBoard that represent the sudoku to complete
+ * @param depth the actual depth of recursion
+ */
 void solveCO_Depth(CSudokuBoard *sudoku, int depth);
+/**
+ * A bruteforce recursive solution that generate a task for each node of recursion until complete the first 2 rows;
+ * after start with a serial approach
+ * @param sudoku CSudokuBoard that represent the sudoku to complete
+ * @param depth the actual depth of recursion
+ */
 void solveCO_Depth_Serial(CSudokuBoard *sudoku, int depth);
-void solveCO_Depth_StrictSerial(CSudokuBoard *sudoku, int depth);
+/**
+ * A bruteforce recursive solution that generate a task for each node of recursion until complete the first row;
+ * after start with a serial approach
+ * @param sudoku CSudokuBoard that represent the sudoku to complete
+ * @param depth the actual depth of recursion
+ */
 void solveCO_StrictDepth_StrictSerial(CSudokuBoard *sudoku, int depth);
+/**
+ * A bruteforce recursive solution that generate a task for each node of recursion until complete the half of first row;
+ * after start with a serial approach
+ * @param sudoku CSudokuBoard that represent the sudoku to complete
+ * @param depth the actual depth of recursion
+ */
+void solveCO_VeryStrictDepth_VeryStrictSerial(CSudokuBoard *sudoku, int depth);
+/**
+ * A bruteforce recursive serial solution with inplace modification
+ * @param sudoku CSudokuBoard that represent the sudoku to complete
+ */
 void serialSolve(CSudokuBoard *sudoku);
 
+/**
+ * print the number of solutions and every board
+ */
 void printSolutions() {
     std::cout << "#solutions: " << solutions.size() << std::endl;
     for (CSudokuBoard s: solutions){
         s.printBoard();
     }
 }
-double run(CSudokuBoard *board, const std::function<void(CSudokuBoard*, int)>& func){
-    double start = omp_get_wtime(), end;
+/**
+ * Run func on the given sudoku, print the solutions and clear
+ * @param sudoku CSudokuBoard that represent the sudoku to complete
+ * @param func the function to run, that require a board and an integer
+ * @return the time of execution
+ */
+double run(CSudokuBoard *sudoku, const std::function<void(CSudokuBoard*, int)>& func){
+    double start, end;
 
+    //measure the current time
+    start = omp_get_wtime();
+
+    //indicate that the following code is executed in parallel, splitting the work of the master thread
     #pragma omp parallel
     {
+        //put others threads in wait for tasks to complete
         #pragma omp single
         {
-            func(board, 0);
+            func(sudoku, 0);
         }
     }
     end = omp_get_wtime();
@@ -59,14 +105,20 @@ double run(CSudokuBoard *board, const std::function<void(CSudokuBoard*, int)>& f
     solutions.clear();
     return end - start;
 }
-double run(CSudokuBoard *board, const std::function<void(CSudokuBoard*)>& func){
+/**
+ * Run func on the given sudoku, print the solutions and clear
+ * @param sudoku CSudokuBoard that represent the sudoku to complete
+ * @param func the function to run, that require a board
+ * @return the time of execution
+ */
+double run(CSudokuBoard *sudoku, const std::function<void(CSudokuBoard*)>& func){
     double start = omp_get_wtime(), end;
 
     #pragma omp parallel
     {
         #pragma omp single
         {
-            func(board);
+            func(sudoku);
         }
     }
     end = omp_get_wtime();
@@ -90,13 +142,15 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    //run all the possible configurations
     std::cout << omp_get_max_threads() << " threads: " << std::endl;
     std::cout << "\tsolve_NoCO: " << run(sudokuIn, solve_NoCO) << "s" << std::endl;
     std::cout << "\tsolveCO_Depth: " << run(sudokuIn, solveCO_Depth) << "s" << std::endl;
     std::cout << "\tsolveCO_Depth_Serial: " << run(sudokuIn, solveCO_Depth_Serial) << "s" << std::endl;
-    std::cout << "\tsolveCO_Depth_StrictSerial: " << run(sudokuIn, solveCO_Depth_StrictSerial) << "s" << std::endl;
     std::cout << "\tsolveCO_StrictDepth_StrictSerial: " << run(sudokuIn, solveCO_StrictDepth_StrictSerial) << "s" << std::endl;
+    std::cout << "\tsolveCO_VeryStrictDepth_VeryStrictSerial: " << run(sudokuIn, solveCO_VeryStrictDepth_VeryStrictSerial) << "s" << std::endl;
 
+    //clear the memory
     delete sudokuIn;
 
     return 0;
@@ -117,7 +171,7 @@ void solve_NoCO(CSudokuBoard *sudoku) {
 
     for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
         if (sudoku->isValidMove(row, col, value)) {
-            //generate a new task to the next level of recursion
+            //generate a new task on the next level of recursion
             #pragma omp task
             {
                 auto *newBoard = new CSudokuBoard(*sudoku);
@@ -140,8 +194,8 @@ void solveCO_Depth(CSudokuBoard *sudoku, int depth) {
 
     for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
         if (sudoku->isValidMove(row, col, value)) {
-            //generate a new task each blocksize-level of recursion and only before the last big row
-            #pragma omp task if(depth % sudoku->getBlockSize() == 0 && depth <= sudoku->getFieldSize() * (sudoku->getFieldSize() - sudoku->getBlockSize()))
+            //generate tasks until the first 2 rows are completed
+            #pragma omp task firstprivate(value,row,col,sudoku) final(depth > sudoku->getFieldSize() * 2)
             {
                 auto *newBoard = new CSudokuBoard(*sudoku);
                 newBoard->set(row, col, value);
@@ -152,8 +206,8 @@ void solveCO_Depth(CSudokuBoard *sudoku, int depth) {
 }
 void solveCO_Depth_Serial(CSudokuBoard *sudoku, int depth) {
     int row = 0, col = 0;
-    //call the serial implementation for the last big row
-    if (depth > sudoku->getFieldSize() * (sudoku->getFieldSize() - sudoku->getBlockSize())){
+    //call the serial implementation after the 2 first rows
+    if (depth > sudoku->getFieldSize() * 2){
         serialSolve(sudoku);
         return;
     }
@@ -165,7 +219,7 @@ void solveCO_Depth_Serial(CSudokuBoard *sudoku, int depth) {
 
     for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
         if (sudoku->isValidMove(row, col, value)) {
-            #pragma omp task if(depth % sudoku->getBlockSize() == 0)
+            #pragma omp task firstprivate(value,row,col,sudoku) final(depth > sudoku->getFieldSize() * 2)
             {
                 auto *newBoard = new CSudokuBoard(*sudoku);
                 newBoard->set(row, col, value);
@@ -174,33 +228,10 @@ void solveCO_Depth_Serial(CSudokuBoard *sudoku, int depth) {
         }
     }
 }
-void solveCO_Depth_StrictSerial(CSudokuBoard *sudoku, int depth) {
-    int row = 0, col = 0;
-    //call the serial implementation for the 2 last big row
-    if (depth > sudoku->getFieldSize() * sudoku->getBlockSize()){
-        serialSolve(sudoku);
-        return;
-    }
-    if (!sudoku->findEmptyCell(&row, &col)){
-        // for safety, never reached practically
-        solutions.push_back(*sudoku);
-        return;
-    }
-
-    for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
-        if (sudoku->isValidMove(row, col, value)) {
-            #pragma omp task if(depth % sudoku->getBlockSize() == 0)
-            {
-                auto *newBoard = new CSudokuBoard(*sudoku);
-                newBoard->set(row, col, value);
-                solveCO_Depth_StrictSerial(newBoard, depth + 1);
-            }
-        }
-    }
-}
 void solveCO_StrictDepth_StrictSerial(CSudokuBoard *sudoku, int depth) {
     int row = 0, col = 0;
-    if (depth > sudoku->getFieldSize() * sudoku->getFieldSize()){
+    //call the serial implementation after the first rows
+    if (depth > sudoku->getFieldSize()){
         serialSolve(sudoku);
         return;
     }
@@ -212,8 +243,8 @@ void solveCO_StrictDepth_StrictSerial(CSudokuBoard *sudoku, int depth) {
 
     for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
         if (sudoku->isValidMove(row, col, value)) {
-            //generate a task each fieldsize-level of recursion
-            #pragma omp task if(depth % sudoku->getFieldSize() == 0)
+            //generate tasks until the first row is completed
+            #pragma omp task firstprivate(value,row,col,sudoku) final(depth > sudoku->getFieldSize())
             {
                 auto *newBoard = new CSudokuBoard(*sudoku);
                 newBoard->set(row, col, value);
@@ -222,7 +253,31 @@ void solveCO_StrictDepth_StrictSerial(CSudokuBoard *sudoku, int depth) {
         }
     }
 }
+void solveCO_VeryStrictDepth_VeryStrictSerial(CSudokuBoard *sudoku, int depth) {
+    int row = 0, col = 0;
+    //call the serial implementation after the first half row
+    if (depth > sudoku->getFieldSize()/2){
+        serialSolve(sudoku);
+        return;
+    }
+    if (!sudoku->findEmptyCell(&row, &col)){
+        // never reached practically
+        solutions.push_back(*sudoku);
+        return;
+    }
 
+    for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
+        if (sudoku->isValidMove(row, col, value)) {
+            //generate tasks until the first half row is completed
+            #pragma omp task firstprivate(value,row,col,sudoku) final(depth > sudoku->getFieldSize()/2)
+            {
+                auto *newBoard = new CSudokuBoard(*sudoku);
+                newBoard->set(row, col, value);
+                solveCO_StrictDepth_StrictSerial(newBoard, depth + 1);
+            }
+        }
+    }
+}
 void serialSolve(CSudokuBoard *sudoku) {
     int row = 0, col = 0;
     if (!sudoku->findEmptyCell(&row, &col)){

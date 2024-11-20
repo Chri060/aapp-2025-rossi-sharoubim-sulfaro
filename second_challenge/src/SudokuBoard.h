@@ -76,10 +76,20 @@ public:
     void printBoard();
 
     /**
-     * Find the first empty cell
+     * Change the parameters row and col so that represent the first empty cell
+     * @param row the pointer of the row to change
+     * @param col the pointer of the column to change
+     * @return if exists an empty cell
      */
     bool findEmptyCell(int *row, int *col) const;
 
+    /**
+     *
+     * @param row the index of the row that we want to check
+     * @param col the index of the column that we want to check
+     * @param value the value that we are trying to insert at row,col
+     * @return if the value insert return a valid sudoku
+     */
     bool isValidMove(int row, int col, int value) const;
 
 private:
