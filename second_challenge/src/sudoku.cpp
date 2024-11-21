@@ -87,13 +87,13 @@ void printSolutions() {
 double run(CSudokuBoard *sudoku, const std::function<void(CSudokuBoard*, int)>& func){
     double start, end;
 
-    //measure the current time
+    // Measure the current time
     start = omp_get_wtime();
 
-    //indicate that the following code is executed in parallel, splitting the work of the master thread
+    // Indicate that the following code is executed in parallel, splitting the work of the master thread
     #pragma omp parallel
     {
-        //put others threads in wait for tasks to complete
+        // Put others threads in wait for tasks to complete
         #pragma omp single
         {
             func(sudoku, 0);
@@ -101,7 +101,7 @@ double run(CSudokuBoard *sudoku, const std::function<void(CSudokuBoard*, int)>& 
     }
     end = omp_get_wtime();
 
-    //printSolutions();
+    // Print solutions
     solutions.clear();
     return end - start;
 }
@@ -123,13 +123,13 @@ double run(CSudokuBoard *sudoku, const std::function<void(CSudokuBoard*)>& func)
     }
     end = omp_get_wtime();
 
-    //printSolutions();
+    // Print solutions
     solutions.clear();
     return end - start;
 }
 
 int main(int argc, char* argv[]) {
-    // expect three command line arguments: field size, block size, and input file
+    // Expect three command line arguments: field size, block size, and input file
     if (argc != 4) {
         std::cout << "Usage: sudoku.exe <field size> <block size> <input filename>" << std::endl;
         std::cout << std::endl;
@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    //run all the possible configurations
+    // Run all the possible configurations
     std::cout << omp_get_max_threads() << " threads: " << std::endl;
     std::cout << "\tsolve_NoCO: " << run(sudokuIn, solve_NoCO) << "s" << std::endl;
     std::cout << "\tsolveCO_Depth: " << run(sudokuIn, solveCO_Depth) << "s" << std::endl;
@@ -150,7 +150,7 @@ int main(int argc, char* argv[]) {
     std::cout << "\tsolveCO_StrictDepth_StrictSerial: " << run(sudokuIn, solveCO_StrictDepth_StrictSerial) << "s" << std::endl;
     std::cout << "\tsolveCO_VeryStrictDepth_VeryStrictSerial: " << run(sudokuIn, solveCO_VeryStrictDepth_VeryStrictSerial) << "s" << std::endl;
 
-    //clear the memory
+    // Clear the memory
     delete sudokuIn;
 
     return 0;
@@ -159,9 +159,9 @@ int main(int argc, char* argv[]) {
 void solve_NoCO(CSudokuBoard *sudoku) {
     int row = 0, col = 0;
 
-    //save the found solution
+    // Save the found solution
     if (!sudoku->findEmptyCell(&row, &col)){
-        //ensure that each is executed by a single thread at a time
+        // Ensure that each is executed by a single thread at a time
         #pragma omp critical
         {
             solutions.push_back(*sudoku);
@@ -171,7 +171,7 @@ void solve_NoCO(CSudokuBoard *sudoku) {
 
     for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
         if (sudoku->isValidMove(row, col, value)) {
-            //generate a new task on the next level of recursion
+            // Generate a new task on the next level of recursion
             #pragma omp task
             {
                 auto *newBoard = new CSudokuBoard(*sudoku);
@@ -194,7 +194,7 @@ void solveCO_Depth(CSudokuBoard *sudoku, int depth) {
 
     for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
         if (sudoku->isValidMove(row, col, value)) {
-            //generate tasks until the first 2 rows are completed
+            // Generate tasks until the first 2 rows are completed
             #pragma omp task firstprivate(value,row,col,sudoku) final(depth > sudoku->getFieldSize() * 2)
             {
                 auto *newBoard = new CSudokuBoard(*sudoku);
@@ -206,13 +206,13 @@ void solveCO_Depth(CSudokuBoard *sudoku, int depth) {
 }
 void solveCO_Depth_Serial(CSudokuBoard *sudoku, int depth) {
     int row = 0, col = 0;
-    //call the serial implementation after the 2 first rows
+    // Call the serial implementation after the 2 first rows
     if (depth > sudoku->getFieldSize() * 2){
         serialSolve(sudoku);
         return;
     }
     if (!sudoku->findEmptyCell(&row, &col)){
-        // never reached practically
+        // Never reached practically
         solutions.push_back(*sudoku);
         return;
     }
@@ -230,13 +230,13 @@ void solveCO_Depth_Serial(CSudokuBoard *sudoku, int depth) {
 }
 void solveCO_StrictDepth_StrictSerial(CSudokuBoard *sudoku, int depth) {
     int row = 0, col = 0;
-    //call the serial implementation after the first rows
+    // Call the serial implementation after the first rows
     if (depth > sudoku->getFieldSize()){
         serialSolve(sudoku);
         return;
     }
     if (!sudoku->findEmptyCell(&row, &col)){
-        // never reached practically
+        // Never reached practically
         solutions.push_back(*sudoku);
         return;
     }
@@ -255,20 +255,20 @@ void solveCO_StrictDepth_StrictSerial(CSudokuBoard *sudoku, int depth) {
 }
 void solveCO_VeryStrictDepth_VeryStrictSerial(CSudokuBoard *sudoku, int depth) {
     int row = 0, col = 0;
-    //call the serial implementation after the first half row
+    // Call the serial implementation after the first half row
     if (depth > sudoku->getFieldSize()/2){
         serialSolve(sudoku);
         return;
     }
     if (!sudoku->findEmptyCell(&row, &col)){
-        // never reached practically
+        // Never reached practically
         solutions.push_back(*sudoku);
         return;
     }
 
     for (int value = 1; value <= sudoku->getFieldSize(); ++value) {
         if (sudoku->isValidMove(row, col, value)) {
-            //generate tasks until the first half row is completed
+            // Generate tasks until the first half row is completed
             #pragma omp task firstprivate(value,row,col,sudoku) final(depth > sudoku->getFieldSize()/2)
             {
                 auto *newBoard = new CSudokuBoard(*sudoku);

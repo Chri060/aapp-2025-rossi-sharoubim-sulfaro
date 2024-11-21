@@ -55,13 +55,13 @@
     This was achieved by creating OpenMP tasks at each recursive level. 
     However, this approach faced a major challenge: the number of tasks could grow exponentially, leading to excessive system resources usages and memory consumption.
 
-    \noindent To address these challenges, we introduced cutoff strategies:
+    \noindent To address these challenges, we introduced these strategies:
     \begin{itemize}
         \item \textit{Depth-based cutoff:} tasks are generated until a specific depth level is reached. 
-        \item \textit{Serial algorithm cutoff:} the last levels of recursion are solved using a serial implementation. 
+        \item \textit{Serial algorithm:} the last levels of recursion are solved using a serial implementation. 
             This approach significantly reduces memory usage as the serial algorithm modifies the Sudoku board in place, eliminating the need to copy the board at every step.
-        \item \textit{Combination of cutoffs:} a combination of the depth-based and serial cutoffs was also implemented to test their combined effectiveness, in two variations: strict (the cutoffs occurs on a higher level of depth), and very strict (even higher level).
     \end{itemize}
+    A combination of the depth-based and serial cutoffs was also implemented to test their combined effectiveness, in two variations: strict (the cutoffs occurs on an deeper level of depth), and very strict (even deeper level).
     These design choices allowed us to systematically explore the trade-offs between parallelism, memory usage, and computational overhead. 
 
     \section{Performance measurment}
@@ -82,11 +82,11 @@
         \item \textit{$9\times 9$ Sudoku:} this size was trivial for all configurations, with execution times consistently close to zero. 
             Due to its simplicity, it did not allow us to meaningfully observe the effects of parallelization or cutoff strategies.
         \item \textit{$16\times 16$ Sudoku:} this input size provided a better benchmark for evaluating performance.
-            We observe a significant difference in the running times of algorithms with and without a serial cutoff. 
-            The configuration without a cutoff shows no improvement when an additional thread is introduced, underscoring the overhead caused by excessive task creation. 
+            We observe a significant difference in the running times of algorithms with and without a serial approach. 
+            The configuration without a cutoff shows no improvement when an additional thread is introduced, highlighting the overhead caused by excessive task creation. 
             In contrast, adopting a serial approach at lower levels of recursion drastically reduces running time. 
             Notably, the strict versions outperform the non-strict ones.
-        \item \textit{$25\times 25$ Sudoku:} this input proved to be highly resource-intensive, especially with the configuration using the non-serial cutoff. 
+        \item \textit{$25\times 25$ Sudoku:} this input proved to be highly resource-intensive, especially with the configuration using only depth-limited cutoff. 
             This implementation caused the system to crash, so we were unable to test those scenarios. 
             However, the configurations with a cutoff demonstrated significant improvement as the number of threads increased.
             Interestingly, the best performance was observed with the non-strict cutoff configuration.
@@ -103,7 +103,7 @@
             \centering
             \includegraphics[width=\textwidth]{image25.png} 
         \end{subfigure}
-        \caption{Performance for Intel Core i5}
+        \caption{Performance on Intel Core i5}
     \end{figure}
     The performance of the algorithm varied significantly across different hardware setups.
     This variability demonstrates that parallel algorithms must be fine-tuned for the specific machine they are run on.
