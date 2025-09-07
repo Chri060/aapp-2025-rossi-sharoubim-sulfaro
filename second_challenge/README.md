@@ -1,10 +1,25 @@
-# Sudoku solver
-Implement a Sudoku solver that explores all possible board positions in parallel using OpenMP, efficiently utilizing multithreading and parallel tasks.
+# Sudoku Solver
 
-## Requirements
-The requirements are as follows:
-- **Use OpenMP tasks**: utilize OpenMP tasks to manage the solving process across different positions, with tasks dynamically created for each cell as potential values are tested.
-- **Synchronization**: implement synchronization mechanisms to ensure thread safety when accessing and updating shared resources, such as the Sudoku board state.
-- **Parallel region with a single creator, multiple executors**: structure the parallel region with one main thread that spawns multiple executor threads to work on different parts of the board.
-- **Cut-off mechanism**: add a mechanism to limit task creation, reducing task overhead when reaching certain depths in the search or when a solution is deemed improbable.
-- **Test different configurations**: experiment with various OpenMP configurations (such as number of threads, task granularity, and cut-off thresholds) to optimize the solver's performance.
+This project implements a parallel Sudoku solver using OpenMP, designed to efficiently explore all possible board positions through multithreading and task parallelism. The solver dynamically creates tasks for each cell as potential values are tested, allowing multiple parts of the board to be processed concurrently. Thread safety is ensured through synchronization mechanisms when accessing or updating the shared board state. The parallel region is structured with a single main thread that spawns multiple executor threads, and a cut-off mechanism limits task creation at deeper search levels or when a solution is unlikely, reducing overhead and improving efficiency. Various OpenMP configurations, including the number of threads, task granularity, and cut-off thresholds, can be tuned to optimize the solver’s performance.
+
+## Installation
+
+This project is implemented in C++ and requires a compiler with OpenMP support. 
+To set it up locally, clone the repository:
+```bash
+git clone https://github.com/Chri060/aapp-2025-rossi-sharoubim-sulfaro
+cd your-repo
+```
+Make sure you have a C++ compiler installed.
+
+The project uses a Makefile. To build the solver, run:
+```bash
+make
+```
+
+## Usage
+
+Run the application with: 
+```bash
+./bin/sudoku
+```
